@@ -33,36 +33,36 @@ static char* reply_str(RedisModuleCallReply *reply) {
     return p;
 }
 
-// SUBSCRIBE <topic> <subscription>
+// SUBSCRIBE <subscription> <topic>
 static int subscribe(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc != 3) {
         return RedisModule_WrongArity(ctx);
     }
     RedisModule_AutoMemory(ctx);
 
-    char *topic = str(argv[1]);
+    char *topic = str(argv[2]);
     RedisModuleString *key = RedisModule_CreateStringPrintf(ctx, "peps:topic:%s", topic);
     RedisModule_Free(topic);
 
-    RedisModuleCallReply *reply = RedisModule_Call(ctx, "SADD", "ss", key, argv[2]);
+    RedisModuleCallReply *reply = RedisModule_Call(ctx, "SADD", "ss", key, argv[1]);
     long long val = RedisModule_CallReplyInteger(reply);
 
     RedisModule_ReplyWithLongLong(ctx, val);
     return REDISMODULE_OK;
 }
 
-// UNSUBSCRIBE <topic> <subscription>
+// UNSUBSCRIBE <subscription> <topic> 
 static int unsubscribe(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc != 3) {
         return RedisModule_WrongArity(ctx);
     }
     RedisModule_AutoMemory(ctx);
 
-    char *topic = str(argv[1]);
+    char *topic = str(argv[2]);
     RedisModuleString *key = RedisModule_CreateStringPrintf(ctx, "peps:topic:%s", topic);
     RedisModule_Free(topic);
 
-    RedisModuleCallReply *reply = RedisModule_Call(ctx, "SREM", "ss", key, argv[2]);
+    RedisModuleCallReply *reply = RedisModule_Call(ctx, "SREM", "ss", key, argv[1]);
     long long val = RedisModule_CallReplyInteger(reply);
 
     RedisModule_ReplyWithLongLong(ctx, val);
