@@ -178,16 +178,18 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
     char *subscription = str(argv[1]);
     RedisModuleString *queue = RedisModule_CreateStringPrintf(ctx, "peps:sub:%s:q", subscription);
-    RedisModule_Free(subscription);
 
     RedisModuleCallReply *reply = RedisModule_Call(ctx, "LPOP", "s", queue);
     if (RedisModule_CallReplyType(reply) == REDISMODULE_REPLY_NULL) {
-        struct blocked_subscriber *me = RedisModule_Alloc(sizeof(*me));
-        me->name = str(argv[1]);
+        // Already someone listening? Re-use
+        struct blocked_subscriber *me = get_blocked(ctx, subscription);
+        if (!me) {
+            me = RedisModule_Alloc(sizeof(*me));
+            me->name = str(argv[1]);
+        }
+
         me->bc = RedisModule_BlockClient(ctx, Block_Reply, Block_Reply, Block_FreeData, 10000);
         LIST_APPEND(blocked, me);
-        return REDISMODULE_OK;
-
     } else if (RedisModule_CallReplyType(reply) == REDISMODULE_REPLY_STRING) {
         RedisModuleString *msg_ref = RedisModule_CreateStringFromCallReply(reply);
         char *p = str(msg_ref);
@@ -210,11 +212,12 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
             RedisModule_ReplyWithStringBuffer(ctx, topic, strlen(topic));
         }
         RedisModule_Free(p);
-        return REDISMODULE_OK;
-
     } else {
         return RedisModule_ReplyWithError(ctx, "ERR queue has unknown value");
     }
+
+    RedisModule_Free(subscription);
+    return REDISMODULE_OK;
 }
 
 // ACK <message-receipt> []
