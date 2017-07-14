@@ -1,3 +1,4 @@
+#define REDISMODULE_EXPERIMENTAL_API
 #include "redismodule.h"
 #include <stdlib.h>
 #include <string.h>
