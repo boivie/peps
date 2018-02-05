@@ -189,7 +189,7 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
             me->name = str(argv[1]);
         }
 
-        me->bc = RedisModule_BlockClient(ctx, Block_Reply, Block_Reply, Block_FreeData, 10000);
+        me->bc = RedisModule_BlockClient(ctx, Block_Reply, Block_Reply, Block_FreeData, timeout * 1000L);
         LIST_APPEND(blocked, me);
     } else if (RedisModule_CallReplyType(reply) == REDISMODULE_REPLY_STRING) {
         RedisModuleString *msg_ref = RedisModule_CreateStringFromCallReply(reply);
