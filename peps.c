@@ -187,6 +187,8 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         if (!me) {
             me = RedisModule_Alloc(sizeof(*me));
             me->name = str(argv[1]);
+        } else {
+            RedisModule_UnblockClient(me->bc, NULL);
         }
 
         me->bc = RedisModule_BlockClient(ctx, Block_Reply, Block_Reply, Block_FreeData, timeout * 1000L);
