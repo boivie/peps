@@ -14,7 +14,7 @@ RUN mkdir -p /usr/src/peps
 COPY . /usr/src/peps
 RUN make -C /usr/src/peps/
 
-FROM redis:4-alpine
+FROM redis:4.0.7-alpine
 
 COPY --from=builder /usr/src/peps/peps.so /usr/local/bin/
 CMD ["redis-server", "--loadmodule", "/usr/local/bin/peps.so"]
