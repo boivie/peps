@@ -7,6 +7,7 @@
 
 #define KEY_EXPIRE (7 * 24 * 3600)
 #define MAX_TIMEOUT (3600)
+#define MAX_TTL (3600)
 
 struct blocked_subscriber {
     char *name;
@@ -155,13 +156,13 @@ static void drain_inflight(RedisModuleCtx *ctx) {
     RedisModule_Call(ctx, "ZREMRANGEBYSCORE", "ccc", "peps:inflight", "0", timeoutbuf);
 }
 
-static void mark_inflight(RedisModuleCtx *ctx, RedisModuleString *receipt, int timeout) {
-    char timeoutbuf[40];
-    snprintf(timeoutbuf, sizeof(timeoutbuf), "%f", (double)((unsigned long)time(NULL) + timeout));
-    RedisModule_Call(ctx, "ZADD", "ccs", "peps:inflight", timeoutbuf, receipt);
+static void mark_inflight(RedisModuleCtx *ctx, RedisModuleString *receipt, int ttl) {
+    char ttlbuf[40];
+    snprintf(ttlbuf, sizeof(ttlbuf), "%f", (double)((unsigned long)time(NULL) + ttl));
+    RedisModule_Call(ctx, "ZADD", "ccs", "peps:inflight", ttlbuf, receipt);
 }
 
-// FETCH <subscription> [timeout = 10]
+// FETCH <subscription> [timeout = 10] [ttl = 60]
 static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc < 2) {
         return RedisModule_WrongArity(ctx);
@@ -171,6 +172,13 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         RedisModule_StringToLongLong(argv[2], &timeout);
         if (timeout <= 0 || timeout > MAX_TIMEOUT) {
             timeout = MAX_TIMEOUT;
+        }
+    }
+    long long ttl = 60;
+    if (argc >= 4) {
+        RedisModule_StringToLongLong(argv[3], &ttl);
+        if (ttl <= 0 || ttl > MAX_TTL) {
+            ttl = MAX_TTL;
         }
     }
     RedisModule_AutoMemory(ctx);
@@ -208,7 +216,7 @@ static int fetch(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
             // Expired or missing!
             RedisModule_ReplyWithNull(ctx);  
         } else {
-            mark_inflight(ctx, msg_ref, timeout);
+            mark_inflight(ctx, msg_ref, ttl);
             RedisModule_ReplyWithArray(ctx, 3);
             RedisModule_ReplyWithString(ctx, msg_ref);
             RedisModule_ReplyWithString(ctx, payload);
